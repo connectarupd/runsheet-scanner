@@ -11,7 +11,7 @@
 </head>
 <body>
   <header>
-    <div><h1>RunSheet Scanner</h1><p>Sorting & Putting • Admin Fixed</p></div>
+    <div><h1>RunSheet Scanner</h1><p>Sorting & Putting • Fast Scan v3</p></div>
     <span id="onlineBadge" class="badge">ONLINE</span>
   </header>
 
@@ -93,11 +93,16 @@
   <div id="toast" class="toast"></div>
   <canvas id="captureCanvas" class="hidden"></canvas>
 
-  <script src="app.js?v=20261001-2"></script>
+  
   <script>
-    // Remove any older service worker/cache so old UI cannot reappear.
-    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
-    if ("caches" in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(()=>{});
+    // Remove old service workers/caches BEFORE loading the new app.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
+    }
+    if ("caches" in window) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(()=>{});
+    }
   </script>
+  <script src="app-fast-v3.js?v=3"></script>
 </body>
 </html>

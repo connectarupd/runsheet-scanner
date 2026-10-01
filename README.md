@@ -67,3 +67,20 @@ Use the HTTPS GitHub Pages URL. Camera access requires HTTPS and browser permiss
 
 ## Important
 Browser, GitHub Pages, Google Apps Script, and Google Sheets have service limits and policies. This version does not use a paid OCR API, but no service can be guaranteed unlimited or permanently free.
+
+### Barcode detection update
+The label camera uses the browser camera directly. RunSheet ID barcode detection now tries the browser BarcodeDetector first, then ZXing with upscaling, grayscale, black-and-white, and crop passes. OCR is used for Sort Code.
+
+### Fast scan behavior
+- Sort Code OCR is the primary required field.
+- RunSheet barcode detection is best-effort and does not block the workflow.
+- Label camera uses a faster 1280x720 mobile profile.
+- Barcode detection uses a quick native detector or one short ZXing attempt.
+- If the RunSheet barcode is missed but OCR detects the Sort Code, GridMaster lookup can still continue.
+
+### Fast Scan v3
+- Loads a new JS filename (`app-fast-v3.js`) to bypass stale browser/GitHub Pages cache.
+- OCR Sort Code is processed first.
+- RunSheet barcode never blocks OCR/Grid processing.
+- Barcode detection continues in the background when possible.
+- Old service workers and caches are unregistered before the app loads.
