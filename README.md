@@ -1,25 +1,43 @@
-# RunSheet Sorting & Putting — Free Starter
+# RunSheet Sorting & Putting - Free Browser Version
 
-এই app-এর flow:
+This app is designed for GitHub Pages + Google Sheets/Google Apps Script. OCR and barcode reading run in the browser using Tesseract.js and ZXing. No paid OCR API key is required.
+
+## Workflow
 
 ### Sorting
-1. **Take Label Photo**
-2. Label barcode থেকে **RunSheet ID** read হবে।
-3. OCR থেকে label-এর লেখা **Sort Code** (যেমন `FK02`, `AJP1`, `TG1K`) detect হবে।
-4. App Google Sheet-এর **GridMaster** tab থেকে সেই Sort Code-এর Grid No fetch করবে।
-5. বড় **green bold** result-এ RunSheet ID, Sort Code এবং Master থেকে পাওয়া Grid No দেখাবে।
-6. Sorting-এ Grid barcode scan হবে না।
+1. Enter Employee ID.
+2. Open the label camera.
+3. Capture the label photo.
+4. Barcode -> RunSheet ID.
+5. OCR -> Sort Code.
+6. Sort Code -> GridMaster -> Grid No.
+7. Show the result in large green bold text.
+8. Save Timestamp, Employee ID, RunSheet ID, Sort Code and Grid No to Google Sheets.
+9. Sorting does not scan a grid barcode.
 
 ### Putting
-1. একইভাবে Label barcode → RunSheet ID এবং OCR → Sort Code।
-2. Sort Code দিয়ে GridMaster থেকে Grid No fetch হবে।
-3. তারপর **Grid Barcode Scan** খুলবে।
-4. Master-এর Grid No যদি `B1` হয়, শুধু barcode value `B1` accept হবে।
-5. অন্য barcode reject হবে।
-6. Exact match হলে বড় green **MATCH** দেখাবে এবং Google Sheet-এর `Scans` tab-এ record যাবে।
+1. Enter Employee ID.
+2. Open the label camera.
+3. Capture the label photo.
+4. Barcode -> RunSheet ID.
+5. OCR -> Sort Code.
+6. Sort Code -> GridMaster -> Grid No.
+7. Show the result in large green bold text.
+8. Open the grid camera.
+9. The scanned grid barcode must exactly match the Grid No from GridMaster.
+10. Correct value shows MATCH in green. Wrong value shows WRONG BARCODE in red.
+11. Save the transaction with timestamp and employee ID.
 
-### Grid Master
-`GridMaster` tab-এ আপনি manually mapping রাখবেন:
+## Google Sheet
+Create two tabs:
+
+### Scans
+`Timestamp | Type | Employee ID | RunSheet ID | Sort Code | Grid No | Scanned Grid | Status`
+
+### GridMaster
+`Sort Code | Grid No`
+
+Example:
 
 | Sort Code | Grid No |
 |---|---|
@@ -27,66 +45,25 @@
 | AJP1 | A1 |
 | TG1K | B1 |
 
-ভবিষ্যতে নতুন Sort Code/Sort Grid যোগ করতে শুধু `GridMaster` tab-এ নতুন row যোগ করবেন। App-এর code পরিবর্তন করার প্রয়োজন হবে না।
+Add new mappings to GridMaster without changing the app code.
 
-## কেন paid API লাগছে না?
-- OCR: Tesseract.js, browser-এ চলে।
-- Barcode: ZXing browser library, browser-এ চলে।
-- Hosting: GitHub Pages ব্যবহার করা যায়।
-- Database: Google Sheets + Google Apps Script.
-- তাই normal usage-এ আলাদা OCR/API/hosting bill নেই। তবে Google/GitHub-এর service limits বা policy বদলালে “forever free” guarantee করা যায় না।
+## Apps Script (Admin setup)
+1. Open the Google Sheet.
+2. Extensions -> Apps Script.
+3. Paste `apps_script.gs`.
+4. Deploy -> New deployment -> Web app.
+5. Execute as: Me.
+6. Who has access: Anyone.
+7. Copy the `/exec` URL.
+8. The admin puts the `/exec` URL into `app.js` once and uploads the app to GitHub Pages.
+9. End users do not enter or configure any Google Apps Script URL.
 
-## GitHub Pages deploy
-1. GitHub-এ নতুন public repository বানান।
-2. এই ZIP-এর files upload করুন।
-3. Settings → Pages → Deploy from branch → `main` / root select করুন।
-4. যে `https://...github.io/...` URL পাবেন সেটি mobile Chrome-এ খুলুন।
-5. Camera permission Allow করুন।
+The current app has the admin Web App URL fixed inside `app.js`, so the Google Sheet connection and GridMaster lookup use the same fixed URL automatically.
 
-**Camera-এর জন্য HTTPS দরকার। GitHub Pages HTTPS দেয়।**
+## GitHub Pages
+Upload the files to the repository root, including `index.html`. Then enable Settings -> Pages -> Deploy from branch -> `main` -> `/ (root)`.
 
-## Google Sheet setup
-1. নতুন Google Sheet বানান।
-2. Extensions → Apps Script.
-3. `apps_script.gs`-এর code paste করুন।
-4. Save.
-5. Deploy → New deployment → Web app.
-6. Execute as: **Me**
-7. Who has access: **Anyone**
-8. Deploy করুন।
-9. `/exec` URL copy করে app-এর নিচের **Google Sheet Connection** box-এ paste করুন।
-10. Save URL.
+Use the HTTPS GitHub Pages URL. Camera access requires HTTPS and browser permission.
 
-প্রথম test-এ একটি successful grid match করুন। Sheet-এর `Scans` tab-এ row তৈরি হবে।
-
-## OCR accuracy
-Label photo-তে text বড়, পরিষ্কার এবং আলো ভালো হলে accuracy বাড়বে। এই starter:
-- `RUNSHEET ID`, `RS ID`, `SORT CODE`, `GRID`, `BIN`, `SLOT`-এর মতো labels চিনতে চেষ্টা করে।
-- না থাকলে alphanumeric patterns থেকে Sort Code/Grid অনুমান করে।
-
-আপনার label-এর exact format যদি যেমন হয়:
-`RS ID: 123456 | SORT CODE: FK02 | GRID: H1`
-তাহলে parser আরও নির্ভুলভাবে configure করা যাবে।
-
-## গুরুত্বপূর্ণ security note
-এই demo-তে Google Apps Script Web App “Anyone” access ব্যবহার করা হয়েছে, কারণ GitHub Pages থেকে সহজে data পাঠাতে হয়। যদি sensitive operational data থাকে, production version-এ authentication/token/allowlist যোগ করা উচিত।
-
-## Files
-- `index.html` — UI
-- `style.css` — mobile UI
-- `app.js` — OCR, barcode, validation, Google Sheet sending
-- `apps_script.gs` — Google Sheet backend
-- `manifest.json` — PWA metadata
-
-
-## Final workflow rules
-- Sorting এবং Putting **দুইটি আলাদা tab**।
-- দুই tab-এই **Employee ID required**।
-- দুই tab-এই Label barcode → RunSheet ID এবং OCR → Sort Code।
-- Sort Code দিয়ে `GridMaster` থেকে Grid No fetch হবে।
-- **Putting-এ শুধু Grid No fetch হওয়ার পর camera খুলবে**।
-- Putting grid barcode-এর value অবশ্যই master-এর Grid No-এর exact match হতে হবে। যেমন `B1` → `B1`।
-- প্রতিটি Sorting/Putting successful record-এ **timestamp + employee ID** থাকবে।
-- OCR এবং barcode processing browser-side, তাই কোনো paid OCR API quota ব্যবহার করা হয় না।
-- GitHub Pages HTTPS camera access-এর জন্য ব্যবহার করুন।
-- এই project কোনো paid subscription/paid API key চায় না। তবে GitHub/Google-এর free service limits বা policy ভবিষ্যতে পরিবর্তিত হতে পারে।
+## Important
+Browser, GitHub Pages, Google Apps Script, and Google Sheets have service limits and policies. This version does not use a paid OCR API, but no service can be guaranteed unlimited or permanently free.
