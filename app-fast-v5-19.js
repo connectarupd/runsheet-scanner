@@ -1,5 +1,5 @@
 // Grid Scanner By ArupD — v5.19 orientation-free label + stronger RunSheet decode.
-// Load AFTER v5.18.
+// Load AFTER v5.18. Fixed v5.19 build: orientation-safe barcode + OCR fallback.
 (function(){
   "use strict";
 
@@ -84,8 +84,13 @@
         const c=rotatedCanvas(img,angle,1500);
         const o=await worker.recognize(c,{rotateAuto:false});
         const t=String(o.data.text||"");
-        const runs=t.match(/\d{6,18}/g)||[];
-        for(const x of runs) candidates.push(x);
+        const normalized=t.replace(/[^0-9]/g,"");
+        const runs=t.match(/(?:\d[\s-]?){6,18}/g)||[];
+        for(const x of runs){
+          const d=x.replace(/\D/g,"");
+          if(d.length>=6) candidates.push(d);
+        }
+        if(normalized.length>=6) candidates.push(normalized);
       }
       candidates.sort((a,b)=>b.length-a.length);
       return candidates[0]||"";
