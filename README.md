@@ -87,3 +87,9 @@ The label camera uses the browser camera directly. RunSheet ID barcode detection
 
 ### Fast Grid v4
 GridMaster mappings are cached locally. Previously scanned Sort Codes return Grid No instantly without another network request. The app also preloads GridMaster in the background after opening, so the first scan is less likely to wait on the Apps Script request.
+
+### v4.1 hotfix
+Fixed the startup JavaScript error that could leave the page showing only the header text and hide the Sorting/Putting/History controls. Also starts GridMaster warm-up after initialization.
+
+### v4.2 hotfix
+Fixed the `masterUrl is not defined` JavaScript error by defining the admin Apps Script Web App URL exactly once inside the app. Users do not need to enter any URL.

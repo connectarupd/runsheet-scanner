@@ -50,6 +50,8 @@ async function warmGridMaster(){
 
 const HISTORY_KEY = "rs_app_history_v2";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpuHkLf9VT6qcqDNr7AvyWdJzPJFITMWdFNiRrpZU1svxCNrUWffdA_mMSsZCmBPN6kQ/exec";
+const masterUrl = APPS_SCRIPT_URL;
+
 let cameraStream = null;
 let cameraMode = null;
 
@@ -295,7 +297,9 @@ function stopGridScanner(){
 async function saveRecord(mode,scannedGrid,status){
   const s=state[mode];
   const rec={timestamp:new Date().toISOString(),type:mode,employeeId:s.employeeId,runSheetId:s.rsId,sortCode:s.sortCode,gridNo:s.gridNo,scannedGrid,status};
-  const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]"); h.unshift(rec); localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,100))); renderHistory();
+  const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]"); h.unshift(rec); localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,100))); loadGridCache();
+setTimeout(warmGridMaster,250);
+renderHistory();
   try{
     await fetch(APPS_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(rec)});
   }catch(e){toast("Saved locally, but the Google Sheet request failed.");}
