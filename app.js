@@ -1,3 +1,4 @@
+// Admin Fixed v2 — URL is built into the app; users do not enter configuration.
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
