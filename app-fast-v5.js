@@ -272,43 +272,50 @@ async function startGridScanner(){
   const s=state.putting;
   if(!s.gridNo){toast("Grid No is not available yet.");return;}
   const video=$("#putVideo"), status=$("#putGridStatus"), stop=$("#putStopBtn"), btn=$("#putGridBtn");
-  status.textContent="Starting camera...";
+  status.textContent="Starting grid camera...";
   btn.classList.add("hidden"); stop.classList.remove("hidden"); video.classList.remove("hidden");
   try{
-    // Open the camera ourselves first. This is more reliable on Android browsers
-    // than asking ZXing to create the camera stream internally.
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       throw new Error("Camera access is not supported by this browser.");
     }
-    s.stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
-      audio:false
-    });
-    video.srcObject=s.stream;
-    await video.play();
+
+    // Request permission once, then let ZXing own the camera stream.
+    // This avoids the Android double-camera-stream error from the previous build.
+    let permissionStream=null;
+    try{
+      permissionStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    }finally{
+      if(permissionStream) permissionStream.getTracks().forEach(t=>t.stop());
+    }
+
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const cameras=devices.filter(d=>d.kind==="videoinput");
+    let deviceId=undefined;
+    const rear=cameras.find(d=>/back|rear|environment|facing/i.test(d.label||""));
+    if(rear) deviceId=rear.deviceId;
+    else if(cameras.length) deviceId=cameras[cameras.length-1].deviceId;
 
     s.scanner=new ZXingBrowser.BrowserMultiFormatReader();
-    s.controls=await s.scanner.decodeFromVideoElement(video,(result)=>{
-      if(result){
-        const value=normalize(result.getText());
-        const expected=normalize(s.gridNo);
-        if(value===expected){
-          stopGridScanner();
-          status.innerHTML=`<span class="success">✓ MATCH — ${escapeHtml(value)}</span>`;
-          saveRecord("putting",value,"MATCH");
-        }else{
-          status.innerHTML=`<span class="error">✗ WRONG BARCODE — ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
-          if(navigator.vibrate) navigator.vibrate([150,80,150]);
-        }
+    s.controls=await s.scanner.decodeFromVideoDevice(deviceId,video,(result,err)=>{
+      if(!result) return;
+      const value=normalize(result.getText());
+      const expected=normalize(s.gridNo);
+      if(value===expected){
+        stopGridScanner();
+        status.innerHTML=`<span class="success">✓ MATCH — ${escapeHtml(value)}</span>`;
+        saveRecord("putting",value,"MATCH");
+      }else{
+        status.innerHTML=`<span class="error">✗ WRONG BARCODE — ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
+        if(navigator.vibrate) navigator.vibrate([150,80,150]);
       }
     });
+    status.textContent="Point the camera at the Grid barcode.";
   }catch(e){
     console.error("Grid camera error:",e);
     status.innerHTML=`<span class="error">Camera could not be opened. Please allow camera permission and use the HTTPS GitHub Pages URL.</span>`;
     stopGridScanner();
   }
 }
-
 function stopGridScanner(){
   const s=state.putting, video=$("#putVideo"), stop=$("#putStopBtn"), btn=$("#putGridBtn");
   try{s.controls?.stop?.()}catch(e){}
