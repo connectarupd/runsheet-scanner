@@ -91,5 +91,5 @@ GridMaster mappings are cached locally. Previously scanned Sort Codes return Gri
 ### v4.1 hotfix
 Fixed the startup JavaScript error that could leave the page showing only the header text and hide the Sorting/Putting/History controls. Also starts GridMaster warm-up after initialization.
 
-### v4.2 hotfix
+### v5 hotfix
 Fixed the `masterUrl is not defined` JavaScript error by defining the admin Apps Script Web App URL exactly once inside the app. Users do not need to enter any URL.
