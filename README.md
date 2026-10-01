@@ -10,6 +10,12 @@ GitHub Pages should be served over HTTPS.
 Version 5.3: Grid Camera rewritten to open the video stream directly and decode the existing video element, avoiding Android deviceId/double-camera conflicts.
 
 
-## v5.4 speed update
+## v5.5 speed update
 - OCR worker is initialized in the background so repeat label scans start faster.
 - First-time GridMaster lookup no longer waits for the full-table preload; it uses a direct lookup immediately.
+
+
+### v5.5 speed update
+- Fast OCR first pass on a reduced upper label region.
+- Full-image OCR is used only when Sort Code is not found.
+- Removed rotateAuto from the normal path.
