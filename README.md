@@ -19,3 +19,6 @@ Version 5.3: Grid Camera rewritten to open the video stream directly and decode 
 - Fast OCR first pass on a reduced upper label region.
 - Full-image OCR is used only when Sort Code is not found.
 - Removed rotateAuto from the normal path.
+
+
+Version 5.6: Android camera handoff fix. The Putting workflow keeps the label camera stream alive after capture and reuses the same stream for the Grid barcode scan, avoiding the getUserMedia release/reopen race.
