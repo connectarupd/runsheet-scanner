@@ -30,6 +30,18 @@ function setup() {
 function doGet(e) {
   setup();
   const action = (e && e.parameter && e.parameter.action) || "";
+  if(action === "gridmaster"){
+    const sh = getOrCreateSheet_("GridMaster", ["Sort Code","Grid No"]);
+    const values = sh.getDataRange().getValues();
+    const rows = [];
+    for(let i=1;i<values.length;i++){
+      if(values[i][0] && values[i][1]){
+        rows.push({sortCode:String(values[i][0]), gridNo:String(values[i][1])});
+      }
+    }
+    return json_({ok:true, rows});
+  }
+
   if (action === "lookup") {
     const sortCode = String(e.parameter.sortCode || "").trim().toUpperCase();
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GridMaster");

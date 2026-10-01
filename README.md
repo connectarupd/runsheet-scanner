@@ -84,3 +84,6 @@ The label camera uses the browser camera directly. RunSheet ID barcode detection
 - RunSheet barcode never blocks OCR/Grid processing.
 - Barcode detection continues in the background when possible.
 - Old service workers and caches are unregistered before the app loads.
+
+### Fast Grid v4
+GridMaster mappings are cached locally. Previously scanned Sort Codes return Grid No instantly without another network request. The app also preloads GridMaster in the background after opening, so the first scan is less likely to wait on the Apps Script request.
