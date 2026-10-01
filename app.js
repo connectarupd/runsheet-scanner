@@ -35,95 +35,36 @@ function showResult(mode){
 
 
 async function decodeLabelBarcode(file, objectUrl){
-  // 1) Use the browser's native barcode detector when available.
+  // Barcode is best-effort and MUST NOT block Sort Code OCR.
+  // First try the native detector (fast when supported).
   try{
     if("BarcodeDetector" in window){
-      const formats = ["code_128","code_39","ean_13","ean_8","upc_a","upc_e","itf","codabar","qr_code"];
-      let detector;
-      try{ detector = new BarcodeDetector({formats}); }
-      catch(e){ detector = new BarcodeDetector(); }
-
-      const img = new Image();
-      img.src = objectUrl;
+      const img=new Image();
+      img.src=objectUrl;
       await img.decode();
-      const found = await detector.detect(img);
-      if(found && found.length){
-        const value = found.find(x => x.rawValue)?.rawValue || "";
-        if(value) return value.trim();
-      }
+      const detector=new BarcodeDetector();
+      const found=await detector.detect(img);
+      const value=found?.find(x=>x.rawValue)?.rawValue||"";
+      if(value) return value.trim();
     }
-  }catch(e){
-    console.warn("Native barcode detector failed", e);
-  }
+  }catch(e){}
 
-  // 2) ZXing fallback with multiple image enhancements/crops.
+  // One lightweight ZXing attempt only. If it fails, OCR can still finish.
   try{
-    const reader = new ZXingBrowser.BrowserMultiFormatReader();
-    const img = new Image();
-    img.src = objectUrl;
+    const reader=new ZXingBrowser.BrowserMultiFormatReader();
+    const img=new Image();
+    img.src=objectUrl;
     await img.decode();
+    const result=await Promise.race([
+      reader.decodeFromImageElement(img),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("barcode-timeout")),1400))
+    ]);
+    const value=result?.getText?.()||"";
+    if(value.trim()) return value.trim();
+  }catch(e){}
 
-    const attempts = [img];
-    const iw = img.naturalWidth || img.width;
-    const ih = img.naturalHeight || img.height;
-    const maxSide = Math.max(iw, ih);
-    const scale = maxSide < 1600 ? 2 : 1;
-
-    const makeCanvas = (mode, crop) => {
-      let sx=0, sy=0, sw=iw, sh=ih;
-      if(crop){
-        sx=Math.floor(iw*crop.x); sy=Math.floor(ih*crop.y);
-        sw=Math.floor(iw*crop.w); sh=Math.floor(ih*crop.h);
-      }
-      const c=document.createElement("canvas");
-      c.width=Math.max(1,Math.round(sw*scale));
-      c.height=Math.max(1,Math.round(sh*scale));
-      const ctx=c.getContext("2d",{willReadFrequently:true});
-      ctx.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);
-
-      if(mode){
-        const d=ctx.getImageData(0,0,c.width,c.height);
-        const p=d.data;
-        for(let i=0;i<p.length;i+=4){
-          const g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2];
-          const v=mode==="bw" ? (g>150?255:0) : g;
-          p[i]=p[i+1]=p[i+2]=v;
-        }
-        ctx.putImageData(d,0,0);
-      }
-      return c;
-    };
-
-    attempts.push(makeCanvas(null,null));
-    attempts.push(makeCanvas("gray",null));
-    attempts.push(makeCanvas("bw",null));
-    attempts.push(makeCanvas(null,{x:0,y:0,w:1,h:0.65}));
-    attempts.push(makeCanvas(null,{x:0,y:0.15,w:1,h:0.7}));
-    attempts.push(makeCanvas(null,{x:0,y:0.35,w:1,h:0.65}));
-
-    for(const source of attempts){
-      try{
-        let result;
-        if(source instanceof HTMLCanvasElement){
-          const im=new Image();
-          im.src=source.toDataURL("image/png");
-          await im.decode();
-          result=await reader.decodeFromImageElement(im);
-        }else{
-          result=await reader.decodeFromImageElement(source);
-        }
-        const value=result?.getText?.()||"";
-        if(value.trim()) return value.trim();
-      }catch(e){
-        // Try the next representation.
-      }
-    }
-  }catch(e){
-    console.warn("ZXing barcode decode failed",e);
-  }
   return "";
 }
-
 
 function extractFields(text, barcodeValue){
   const raw=(text||"").toUpperCase();
@@ -158,7 +99,7 @@ async function openLabelCamera(mode){
   $("#cameraModal").classList.remove("hidden");
   try{
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Camera access is not supported by this browser.");
-    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
     const video=$("#labelCamera"); video.srcObject=cameraStream; await video.play();
   }catch(e){
     closeLabelCamera();
@@ -193,41 +134,59 @@ async function readLabel(mode,file){
   const employeeInput = mode==="sorting" ? $("#sortEmployeeId") : $("#putEmployeeId");
   s.employeeId=employeeInput.value.trim();
   if(!s.employeeId){toast("Employee ID is required.");return;}
-  busy(true,"Reading barcode and OCR...");
+
+  busy(true,"Reading label...");
   let url="";
   try{
     url=URL.createObjectURL(file);
-    const preview=mode==="sorting"?$("#sortLabelPreview") : $("#putLabelPreview");
-    preview.innerHTML=`<img src="${url}" alt="Captured label">`;
 
-    let barcode = await decodeLabelBarcode(file, url);
+    const preview=mode==="sorting"?$("#sortLabelPreview"):$("#putLabelPreview");
+    preview.innerHTML=`<img class="scanPreview" src="${url}" alt="Captured label" loading="eager">`;
 
-    if(!barcode){
-      throw new Error("RunSheet ID barcode was not detected. Hold the label flat, keep the full barcode inside the frame, and capture again.");
-    }
+    // OCR starts immediately. Barcode runs in parallel and is optional.
+    const barcodePromise=decodeLabelBarcode(file,url);
 
-    const ocr=await Tesseract.recognize(url,"eng",{logger:m=>{
-      if(m.status==="recognizing text") $("#busyText").textContent=`OCR ${Math.round((m.progress||0)*100)}%`;
-    }});
+    const ocr=await Tesseract.recognize(url,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text"){
+          $("#busyText").textContent=`Reading text ${Math.round((m.progress||0)*100)}%`;
+        }
+      },
+      config:{
+        tessedit_pageseg_mode:"6",
+        preserve_interword_spaces:"1"
+      }
+    });
+
+    const barcode=await barcodePromise;
     const f=extractFields(ocr.data.text,barcode);
     Object.assign(s,f);
-    if(!s.rsId) throw new Error("RunSheet ID was not found. Capture the label again with the barcode clearly visible.");
-    if(!s.sortCode) throw new Error("Sort Code was not found. Capture a clearer label image.");
 
-    $("#busyText").textContent="Looking up GridMaster...";
+    // Sort Code is the key field. RunSheet barcode is optional.
+    if(!s.sortCode){
+      throw new Error("Sort Code was not detected. Hold the label closer and capture again.");
+    }
+
+    $("#busyText").textContent="Loading Grid...";
     s.gridNo=await fetchGridForSort(s.sortCode);
+
     showResult(mode);
+
+    if(!s.rsId){
+      toast("Sort Code found. RunSheet barcode was not detected.");
+    }
 
     if(mode==="sorting"){
       await saveRecord(mode,"","SORTED");
-      toast("Sorting completed successfully.");
+      toast(s.rsId ? "Sorting completed successfully." : "Sorting completed — Sort Code and Grid detected.");
     }else{
       $("#putGridCard").classList.remove("hidden");
-      $("#putGridStatus").textContent="GridMaster loaded. Open the Grid Camera to continue.";
-      toast("Label processed. Now scan the Grid barcode.");
+      $("#putGridStatus").textContent="Grid loaded. Open Grid Camera to continue.";
+      toast(s.rsId ? "Label processed. Scan the Grid barcode." : "Sort Code found. Scan the Grid barcode.");
     }
   }catch(e){
-    console.error(e); toast(e.message||"Could not read the label.");
+    console.error(e);
+    toast(e.message||"Could not read the label.");
   }finally{
     if(url) URL.revokeObjectURL(url);
     busy(false);
