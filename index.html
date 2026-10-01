@@ -11,10 +11,9 @@
 </head>
 <body>
   <header>
-    <div><h1>Grid Scanner By ArupD</h1><p>Sorting & Putting • Fast Grid v5.14</p></div>
+    <div><h1>Grid Scanner By ArupD</h1><p>Sorting & Putting • Fast Grid v5.15</p></div>
     <span id="onlineBadge" class="badge">ONLINE</span>
   </header>
-
   <main>
     <section class="tabs">
       <button class="tab active" data-tab="sorting">Sorting</button>
@@ -52,7 +51,6 @@
         <div id="putLabelPreview" class="preview"></div>
         <div id="putResult" class="result hidden"></div>
       </div>
-
       <div id="putGridCard" class="card hidden">
         <h2>2. Scan Grid Barcode</h2>
         <p class="hint">The Grid No is loaded from GridMaster. The scanned grid barcode must match it exactly.</p>
@@ -70,8 +68,6 @@
         <div id="historyList" class="historyList"></div>
       </div>
     </section>
-
-
   </main>
 
   <div id="cameraModal" class="cameraModal hidden">
@@ -93,9 +89,7 @@
   <div id="toast" class="toast"></div>
   <canvas id="captureCanvas" class="hidden"></canvas>
 
-  
   <script>
-    // Remove old service workers/caches BEFORE loading the new app.
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
     }
@@ -103,6 +97,9 @@
       caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(()=>{});
     }
   </script>
+
+  <!-- Load the stable v5.14 app first, then the v5.15 RunSheet fix. -->
   <script src="app-fast-v5-14.js?v=5140"></script>
+  <script src="app-fast-v5-15.js?v=5150"></script>
 </body>
 </html>
