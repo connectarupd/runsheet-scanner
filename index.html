@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>RunSheet Sorting & Putting</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <!-- Free browser-side libraries. No API key required. -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>RunSheet Scanner</h1>
+      <p>Sorting & Putting</p>
+    </div>
+    <span id="onlineBadge" class="badge">ONLINE</span>
+  </header>
+
+  <main>
+    <section class="tabs">
+      <button class="tab active" data-tab="sorting">Sorting</button>
+      <button class="tab" data-tab="putting">Putting</button>
+      <button class="tab" data-tab="history">History</button>
+    </section>
+
+    <section id="sorting" class="panel active">
+      <div class="card">
+        <h2>Sorting</h2>
+        <label>Employee ID <span style="color:#dc2626">*</span>
+          <input id="sortEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off">
+        </label>
+      </div>
+      <div class="card">
+        <h2>1. Scan Label</h2>
+        <p class="hint">Label-এর ছবি তুলুন। Barcode থেকে RunSheet ID এবং OCR থেকে Sort Code/Grid No পড়ার চেষ্টা করবে।</p>
+        <button id="sortLabelBtn" class="primary big">📷 Take Label Photo</button>
+        <input id="sortLabelInput" type="file" accept="image/*" capture="environment" hidden>
+        <div id="sortLabelPreview" class="preview"></div>
+        <div id="sortResult" class="result hidden"></div>
+      </div>
+
+      <div id="sortGridCard" class="card hidden">
+        <h2>2. Grid Master-এর Grid Barcode Scan</h2>
+        <p class="hint">Grid No যদি <b>A1</b> হয়, barcode-এর value অবশ্যই <b>A1</b> হতে হবে। অন্য barcode হলে reject করবে।</p>
+        <button id="sortGridBtn" class="primary big">📷 Scan Grid Barcode</button>
+        <video id="sortVideo" class="video hidden" playsinline muted></video>
+        <button id="sortStopBtn" class="danger hidden">Stop Camera</button>
+        <div id="sortGridStatus" class="scanStatus"></div>
+      </div>
+    </section>
+
+    <section id="putting" class="panel">
+      <div class="card">
+        <h2>Putting</h2>
+        <label>Employee ID <span style="color:#dc2626">*</span>
+          <input id="putEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off">
+        </label>
+      </div>
+      <div class="card">
+        <h2>1. Scan Label</h2>
+        <p class="hint">Putting-এর label-ও একইভাবে RunSheet ID, Sort Code এবং Grid No বের করবে।</p>
+        <button id="putLabelBtn" class="primary big">📷 Take Label Photo</button>
+        <input id="putLabelInput" type="file" accept="image/*" capture="environment" hidden>
+        <div id="putLabelPreview" class="preview"></div>
+        <div id="putResult" class="result hidden"></div>
+      </div>
+
+      <div id="putGridCard" class="card hidden">
+        <h2>2. Grid Master-এর Grid Barcode Scan</h2>
+        <p class="hint">Grid Master থেকে Grid No আসার পরেই camera খুলবে। Barcode value Grid No-এর সঙ্গে exact match না হলে Putting হবে না।</p>
+        <button id="putGridBtn" class="primary big">📷 Scan Grid Barcode</button>
+        <video id="putVideo" class="video hidden" playsinline muted></video>
+        <button id="putStopBtn" class="danger hidden">Stop Camera</button>
+        <div id="putGridStatus" class="scanStatus"></div>
+      </div>
+    </section>
+
+    <section id="history" class="panel">
+      <div class="card">
+        <h2>Recent Records</h2>
+        <div class="toolbar">
+          <button id="clearLocal" class="secondary">Clear Local History</button>
+        </div>
+        <div id="historyList" class="historyList"></div>
+      </div>
+    </section>
+
+    <section class="card setup">
+      <h2>Google Sheet Connection</h2>
+      <label>Apps Script Web App URL
+        <input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+      </label>
+      <label style="margin-top:10px">Grid Master API URL
+        <input id="masterUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+      </label>
+      <button id="saveSettings" class="secondary">Save URLs</button>
+      <p class="hint">URL এই ফোনের browser-এ localStorage-এ save হবে।</p>
+    </section>
+  </main>
+
+  <div id="busy" class="busy hidden">
+    <div class="spinner"></div>
+    <div id="busyText">Processing...</div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script><script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</body>
+</html>
