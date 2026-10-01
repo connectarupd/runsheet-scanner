@@ -9,6 +9,7 @@ const state = {
 const GRID_CACHE_KEY="runsheet_gridmaster_v5";
 let gridMasterCache={};
 let gridMasterWarmPromise=null;
+let ocrWorkerPromise=null;
 
 function loadGridCache(){
   try{
@@ -81,6 +82,28 @@ function showResult(mode){
 }
 
 
+async function getOcrWorker(){
+  if(ocrWorkerPromise) return ocrWorkerPromise;
+  ocrWorkerPromise=(async()=>{
+    const worker=await Tesseract.createWorker("eng", 1, {
+      logger:m=>{
+        if(m.status==="loading language model" || m.status==="initializing api") {
+          const p=Math.round((m.progress||0)*100);
+          const el=$("busyText");
+          if(el) el.textContent=`Preparing scanner ${p}%`;
+        }
+      }
+    });
+    await worker.setParameters({
+      tessedit_pageseg_mode:"6",
+      preserve_interword_spaces:"1",
+      user_defined_dpi:"180"
+    });
+    return worker;
+  })().catch(e=>{ ocrWorkerPromise=null; throw e; });
+  return ocrWorkerPromise;
+}
+
 async function decodeLabelBarcode(file, objectUrl){
   // Barcode is best-effort and MUST NOT block Sort Code OCR.
   // First try the native detector (fast when supported).
@@ -132,32 +155,32 @@ function extractFields(text, barcodeValue){
 
 async function fetchGridForSort(sortCode){
   const code=normalizeSortCode(sortCode);
-
-  // Instant path: previously seen mappings are local.
   if(gridMasterCache[code]) return gridMasterCache[code];
-
   if(!masterUrl) throw new Error("Grid Master is not configured.");
 
-  // First-time code: use the background GridMaster preload if it is already running.
-  // This avoids a second network request and makes Grid lookup instant once preload finishes.
-  await warmGridMaster();
-  if(gridMasterCache[code]) return gridMasterCache[code];
-
-  // Fallback for older Apps Script deployments that do not support action=gridmaster.
+  // Do NOT wait for the background full-table preload on a first-time code.
+  // A direct lookup is usually much faster on mobile networks.
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),6000);
+  const timer=setTimeout(()=>controller.abort(),3500);
   try{
     const r=await fetch(masterUrl+"?action=lookup&sortCode="+encodeURIComponent(code)+"&_="+Date.now(),{
       cache:"no-store", signal:controller.signal
     });
     const data=await r.json();
-    if(!data.ok || !data.gridNo) throw new Error("Grid not found for Sort Code: "+sortCode);
-    gridMasterCache[code]=String(data.gridNo).trim();
-    saveGridCache();
-    return gridMasterCache[code];
+    if(data?.ok && data?.gridNo){
+      gridMasterCache[code]=String(data.gridNo).trim();
+      saveGridCache();
+      return gridMasterCache[code];
+    }
+  }catch(e){
+    // Fall through to the already-running full GridMaster preload.
   }finally{
     clearTimeout(timer);
   }
+
+  await warmGridMaster();
+  if(gridMasterCache[code]) return gridMasterCache[code];
+  throw new Error("Grid not found for Sort Code: "+sortCode);
 }
 
 async function openLabelCamera(mode){
@@ -217,15 +240,15 @@ async function readLabel(mode,file){
     // OCR is the primary/required path. Barcode is optional and runs in the background.
     const barcodePromise=decodeLabelBarcode(file,url).catch(()=> "");
 
-    const ocr=await Tesseract.recognize(url,"eng",{
+    const worker=await getOcrWorker();
+    const ocr=await worker.recognize(url, {
+      rotateAuto:true,
+      rectangle:{left:0,top:0,width:0,height:0}
+    }, {
       logger:m=>{
         if(m.status==="recognizing text"){
           $("#busyText").textContent=`Reading text ${Math.round((m.progress||0)*100)}%`;
         }
-      },
-      config:{
-        tessedit_pageseg_mode:"6",
-        preserve_interword_spaces:"1"
       }
     });
 
@@ -279,24 +302,32 @@ async function startGridScanner(){
       throw new Error("Camera access is not supported by this browser.");
     }
 
-    // Request permission once, then let ZXing own the camera stream.
-    // This avoids the Android double-camera-stream error from the previous build.
-    let permissionStream=null;
+    // Open the camera ourselves. Label camera already works on this device,
+    // so reusing the same getUserMedia path is more reliable than asking ZXing
+    // to open a second camera stream by deviceId.
+    const constraints={
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280,max:1920},height:{ideal:720,max:1080}},
+      audio:false
+    };
     try{
-      permissionStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    }finally{
-      if(permissionStream) permissionStream.getTracks().forEach(t=>t.stop());
+      s.stream=await navigator.mediaDevices.getUserMedia(constraints);
+    }catch(firstErr){
+      // Fallback for devices that reject facingMode constraints.
+      s.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
     }
 
-    const devices=await navigator.mediaDevices.enumerateDevices();
-    const cameras=devices.filter(d=>d.kind==="videoinput");
-    let deviceId=undefined;
-    const rear=cameras.find(d=>/back|rear|environment|facing/i.test(d.label||""));
-    if(rear) deviceId=rear.deviceId;
-    else if(cameras.length) deviceId=cameras[cameras.length-1].deviceId;
+    video.srcObject=s.stream;
+    video.setAttribute("playsinline","");
+    video.setAttribute("autoplay","");
+    video.muted=true;
+    await video.play();
 
     s.scanner=new ZXingBrowser.BrowserMultiFormatReader();
-    s.controls=await s.scanner.decodeFromVideoDevice(deviceId,video,(result,err)=>{
+    status.textContent="Point the camera at the Grid barcode.";
+
+    // Decode the already-open video element. This avoids the Android
+    // getUserMedia/deviceId conflict seen in the previous versions.
+    s.controls=await s.scanner.decodeFromVideoElement(video,(result,err)=>{
       if(!result) return;
       const value=normalize(result.getText());
       const expected=normalize(s.gridNo);
@@ -309,10 +340,9 @@ async function startGridScanner(){
         if(navigator.vibrate) navigator.vibrate([150,80,150]);
       }
     });
-    status.textContent="Point the camera at the Grid barcode.";
   }catch(e){
     console.error("Grid camera error:",e);
-    status.innerHTML=`<span class="error">Camera could not be opened. Please allow camera permission and use the HTTPS GitHub Pages URL.</span>`;
+    status.innerHTML=`<span class="error">Grid camera could not start. Please close other camera apps and allow camera permission.</span>`;
     stopGridScanner();
   }
 }
@@ -357,3 +387,4 @@ $('#clearLocal').onclick=()=>{localStorage.removeItem(HISTORY_KEY);renderHistory
 renderHistory();
 loadGridCache();
 setTimeout(warmGridMaster,50);
+setTimeout(()=>getOcrWorker().catch(()=>{}),150);
