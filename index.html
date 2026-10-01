@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Grid Scanner By ArupD</title>
+  <link rel="stylesheet" href="style.css?v=20261001-2">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
+</head>
+<body>
+  <header>
+    <div><h1>Grid Scanner By ArupD</h1><p>Sorting & Putting • Fast Grid v5.6</p></div>
+    <span id="onlineBadge" class="badge">ONLINE</span>
+  </header>
+
+  <main>
+    <section class="tabs">
+      <button class="tab active" data-tab="sorting">Sorting</button>
+      <button class="tab" data-tab="putting">Putting</button>
+      <button class="tab" data-tab="history">History</button>
+    </section>
+
+    <section id="sorting" class="panel active">
+      <div class="card">
+        <h2>Sorting</h2>
+        <label>Employee ID <span class="required">*</span>
+          <input id="sortEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off">
+        </label>
+      </div>
+      <div class="card">
+        <h2>1. Scan Label</h2>
+        <p class="hint">Use the camera to capture the label. The barcode is used for RunSheet ID and OCR is used for Sort Code.</p>
+        <button id="sortLabelBtn" class="primary big">📷 Open Label Camera</button>
+        <div id="sortLabelPreview" class="preview"></div>
+        <div id="sortResult" class="result hidden"></div>
+      </div>
+    </section>
+
+    <section id="putting" class="panel">
+      <div class="card">
+        <h2>Putting</h2>
+        <label>Employee ID <span class="required">*</span>
+          <input id="putEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off">
+        </label>
+      </div>
+      <div class="card">
+        <h2>1. Scan Label</h2>
+        <p class="hint">Use the camera to capture the label. RunSheet ID comes from the barcode and Sort Code comes from OCR.</p>
+        <button id="putLabelBtn" class="primary big">📷 Open Label Camera</button>
+        <div id="putLabelPreview" class="preview"></div>
+        <div id="putResult" class="result hidden"></div>
+      </div>
+
+      <div id="putGridCard" class="card hidden">
+        <h2>2. Scan Grid Barcode</h2>
+        <p class="hint">The Grid No is loaded from GridMaster. The scanned grid barcode must match it exactly.</p>
+        <button id="putGridBtn" class="primary big">📷 Open Grid Camera</button>
+        <video id="putVideo" class="video hidden" playsinline muted></video>
+        <button id="putStopBtn" class="danger hidden">Stop Camera</button>
+        <div id="putGridStatus" class="scanStatus"></div>
+      </div>
+    </section>
+
+    <section id="history" class="panel">
+      <div class="card">
+        <h2>Recent Records</h2>
+        <div class="toolbar"><button id="clearLocal" class="secondary">Clear Local History</button></div>
+        <div id="historyList" class="historyList"></div>
+      </div>
+    </section>
+
+
+  </main>
+
+  <div id="cameraModal" class="cameraModal hidden">
+    <div class="cameraBox">
+      <div class="cameraHeader">
+        <strong id="cameraTitle">Label Camera</strong>
+        <button id="closeCamera" class="cameraClose" aria-label="Close">✕</button>
+      </div>
+      <video id="labelCamera" class="labelCamera" autoplay playsinline muted></video>
+      <div class="cameraActions">
+        <button id="capturePhoto" class="primary big">📸 Capture Photo</button>
+        <button id="cancelCamera" class="secondary big">Cancel</button>
+      </div>
+      <p id="cameraHelp" class="hint">Allow camera permission when your browser asks.</p>
+    </div>
+  </div>
+
+  <div id="busy" class="busy hidden"><div class="spinner"></div><div id="busyText">Processing...</div></div>
+  <div id="toast" class="toast"></div>
+  <canvas id="captureCanvas" class="hidden"></canvas>
+
+  
+  <script>
+    // Remove old service workers/caches BEFORE loading the new app.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
+    }
+    if ("caches" in window) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(()=>{});
+    }
+  </script>
+  <script src="app-fast-v5-7.js?v=56"></script>
+</body>
+</html>

@@ -22,3 +22,6 @@ Version 5.3: Grid Camera rewritten to open the video stream directly and decode 
 
 
 Version 5.6: Android camera handoff fix. The Putting workflow keeps the label camera stream alive after capture and reuses the same stream for the Grid barcode scan, avoiding the getUserMedia release/reopen race.
+
+
+Version 5.7: Grid scanning reuses the exact existing label-camera video stream; native BarcodeDetector is preferred so the grid scanner never opens a second camera stream.
