@@ -4,7 +4,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 
 const state = {
   sorting: { label:null, employeeId:"", rsId:"", sortCode:"", gridNo:"" },
-  putting: { label:null, employeeId:"", rsId:"", sortCode:"", gridNo:"", scanner:null, stream:null }
+  putting: { label:null, employeeId:"", rsId:"", sortCode:"", gridNo:"", scanner:null, controls:null, stream:null }
 };
 const GRID_CACHE_KEY="runsheet_gridmaster_v5";
 let gridMasterCache={};
@@ -275,8 +275,20 @@ async function startGridScanner(){
   status.textContent="Starting camera...";
   btn.classList.add("hidden"); stop.classList.remove("hidden"); video.classList.remove("hidden");
   try{
+    // Open the camera ourselves first. This is more reliable on Android browsers
+    // than asking ZXing to create the camera stream internally.
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error("Camera access is not supported by this browser.");
+    }
+    s.stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    video.srcObject=s.stream;
+    await video.play();
+
     s.scanner=new ZXingBrowser.BrowserMultiFormatReader();
-    await s.scanner.decodeFromConstraints({video:{facingMode:{ideal:"environment"}}},video,(result)=>{
+    s.controls=await s.scanner.decodeFromVideoElement(video,(result)=>{
       if(result){
         const value=normalize(result.getText());
         const expected=normalize(s.gridNo);
@@ -291,14 +303,17 @@ async function startGridScanner(){
       }
     });
   }catch(e){
-    status.innerHTML=`<span class="error">Camera error. Check HTTPS and camera permission.</span>`;
+    console.error("Grid camera error:",e);
+    status.innerHTML=`<span class="error">Camera could not be opened. Please allow camera permission and use the HTTPS GitHub Pages URL.</span>`;
     stopGridScanner();
   }
 }
 
 function stopGridScanner(){
   const s=state.putting, video=$("#putVideo"), stop=$("#putStopBtn"), btn=$("#putGridBtn");
+  try{s.controls?.stop?.()}catch(e){}
   try{s.scanner?.reset()}catch(e){}
+  s.controls=null;
   if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}
   video.srcObject=null; video.classList.add("hidden"); stop.classList.add("hidden"); btn.classList.remove("hidden");
 }
