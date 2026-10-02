@@ -1,11 +1,12 @@
-Grid Scanner By ArupD v5.47
+Grid Scanner By ArupD v5.48
 
-Fast deterministic two-template label scan.
-- Type 1: RunSheet from linear barcode; Sort Code from the dedicated right-side bold region (example TG1K).
-- Type 2: RunSheet from QR; Sort Code from the dedicated center bold region (example MSA1).
-- Barcode format selects the label template when available.
-- No previous scan values survive a new capture.
-- Grid No is read only from GridMaster using the detected Sort Code.
-- Hard processing budget is about 4.8 seconds; no 20–30 second OCR loop.
+FIXED deterministic label scanner.
+- Type 1: RunSheet comes from the top linear barcode; printed barcode value is OCR fallback. Sort Code comes ONLY from the bold right-side field.
+- Type 2: RunSheet comes from the center QR; printed RunSheet ID near the QR is OCR fallback. Sort Code comes ONLY from the bold center field (example MSA1).
+- Label is first located from its green carrier/border, so whole-camera coordinates are not used.
+- Camera orientation 0/90/180/270 is handled.
+- Grid No comes ONLY from GridMaster. Direct lookup is used with a short timeout; GridMaster is warmed in the background.
+- Previous scan values are cleared on every new capture.
+- Hard label processing budget is ~4.8 seconds.
 
-Replace index.html and app-fast-v5-47.js. Keep app-fast-v5-7-base.js, style.css, apps_script.gs, .nojekyll and shadowfax-logo.jpg if those files already exist in the repository.
+Upload index.html, app-fast-v5-48.js, app-fast-v5-7-base.js and shadowfax-logo.jpg. Do not load older app-fast v5.47/v5.46 files.
