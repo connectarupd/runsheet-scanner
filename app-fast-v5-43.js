@@ -1,10 +1,11 @@
-// Grid Scanner By ArupD — v5.43
+// Grid Scanner By ArupD — v5.44
 // Deterministic 2-label logic: barcode = RunSheet, bold 4-char GridMaster code = Sort Code.
 (function(){
   'use strict';
   const clean=v=>String(v||'').trim();
   const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   const DEAD_MS=4800;
+  const OCR_MS=3000;
 
   function resetScan(mode){
     const s=state[mode];
@@ -121,26 +122,33 @@
     const n=await nativeBarcode(url,deadline); if(n.value)return n;
     return await zxingBarcode(url,deadline);
   }
-  async function ocrSort(url,worker,angle,deadline){
+  async function ocrSort(url,worker,deadline){
     const img=await loadImg(url);
-    const c=rotateCanvas(img,Number.isFinite(angle)?angle:0,1000);
-    // One focused label OCR pass. This is deliberately NOT used for RunSheet.
-    const zones=[
-      cropRel(c,.08,.12,.84,.72),
-      cropRel(c,.04,.04,.92,.92)
-    ];
+    // Sort Code OCR is independent of RunSheet barcode orientation.
+    // Type-1 labels can be sideways/upside-down, so never use barcode angle as OCR angle.
+    const angles=[0,90,270,180];
     let best='';
-    for(const z0 of zones){
-      if(Date.now()>deadline-700)break;
-      const z=enhance(z0,1.25);
+    for(const a of angles){
+      if(Date.now()>Math.min(deadline,Date.now()+OCR_MS)-500) break;
+      const c=rotateCanvas(img,a,900);
+      // The label is normally near the centre. One compact pass keeps the scan fast.
+      const z0=cropRel(c,.08,.08,.84,.84);
+      const z=enhance(z0,1.15);
       try{
-        await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'0',tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'});
-        const remain=Math.max(500,deadline-Date.now()-80);
-        const r=await Promise.race([worker.recognize(z,{rotateAuto:false}),new Promise((_,rej)=>setTimeout(()=>rej(Error('ocr-timeout')),Math.min(1600,remain)))]);
+        await worker.setParameters({
+          tessedit_pageseg_mode:'11',
+          preserve_interword_spaces:'0',
+          tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        });
+        const remain=Math.max(550,Math.min(900,deadline-Date.now()-80));
+        const r=await Promise.race([
+          worker.recognize(z,{rotateAuto:false}),
+          new Promise((_,rej)=>setTimeout(()=>rej(Error('ocr-timeout')),remain))
+        ]);
         const code=extractSort(r.data.text||'');
         if(code)return code;
-        best=best||'';
       }catch(e){}
+      if(Date.now()>deadline-500)break;
     }
     return best;
   }
@@ -154,22 +162,32 @@
       url=URL.createObjectURL(file);
       const preview=mode==='sorting'?$('#sortLabelPreview'):$('#putLabelPreview');
       preview.innerHTML=`<img class="scanPreview ultraPreview" src="${url}" alt="Captured label">`;
-      // Grid cache + OCR worker are already warmed on page load. Do not block the 5s scan on GridMaster.
+
+      // IMPORTANT: barcode and OCR run IN PARALLEL. Barcode detection must never block Sort Code OCR.
       const gridWarm=warmGridMaster().catch(()=>{});
       const barcodeP=detectRunSheetBarcode(url,deadline).catch(()=>({value:'',angle:null}));
-      const workerP=getOcrWorker();
-      const barcode=await barcodeP;
-      const angle=Number.isFinite(barcode.angle)?barcode.angle:0;
-      const worker=await Promise.race([workerP,new Promise((_,rej)=>setTimeout(()=>rej(Error('Scanner is still starting. Wait for Scanner Ready once, then scan.')),Math.max(250,deadline-Date.now()-100))) ]);
-      const [sortCode]=await Promise.all([ocrSort(url,worker,angle,deadline)]);
-      // IMPORTANT: RunSheet comes ONLY from barcode. Never from date/time OCR.
-      s.rsId=barcode.value||'';
+      const worker=await Promise.race([
+        getOcrWorker(),
+        new Promise((_,rej)=>setTimeout(()=>rej(Error('Scanner is still starting. Wait for Scanner Ready once, then scan.')),Math.max(300,deadline-Date.now()-300)))
+      ]);
+      const sortP=ocrSort(url,worker,deadline).catch(()=> '');
+
+      // Give both recognition jobs the same deadline. Never reuse previous scan data.
+      const [barcode,sortCode]=await Promise.all([barcodeP,sortP]);
+      s.rsId=cleanBarcode(barcode?.value||'');
       s.sortCode=sortCode||'';
+      s.gridNo='';
+
       if(s.sortCode){
-        try{s.gridNo=await Promise.race([fetchGridForSort(s.sortCode),new Promise(r=>setTimeout(()=>r(''),700))])}catch(e){}
+        try{s.gridNo=await Promise.race([
+          fetchGridForSort(s.sortCode),
+          new Promise(r=>setTimeout(()=>r(''),500))
+        ])}catch(e){}
       }
       await gridWarm;
-      if(!s.gridNo && s.sortCode){try{s.gridNo=gridMasterCache[normalize(s.sortCode)]||''}catch(e){}}
+      if(!s.gridNo && s.sortCode){
+        try{s.gridNo=gridMasterCache[normalize(s.sortCode)]||''}catch(e){}
+      }
       showResult(mode); if(typeof styleResult==='function')styleResult(mode);
       if(!s.sortCode){toast('Sort Code not detected.');return;}
       if(!s.rsId){toast('RunSheet barcode not detected.');return;}
@@ -194,3 +212,4 @@
     try{warmGridMaster().catch(()=>{})}catch(e){}
   });
 })();
+
