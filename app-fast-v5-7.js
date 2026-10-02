@@ -503,3 +503,4 @@ renderHistory();
 loadGridCache();
 setTimeout(warmGridMaster,50);
 setTimeout(()=>getOcrWorker().catch(()=>{}),150);
+
