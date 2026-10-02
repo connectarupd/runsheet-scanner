@@ -1,27 +1,10 @@
-# Grid Scanner By ArupD v5.2
+Grid Scanner By ArupD v5.43
 
-Android Grid Camera fix.
-
-This version avoids opening two camera streams at the same time. It requests camera permission once, selects the rear camera when available, and then lets ZXing own the camera stream for barcode scanning.
-
-GitHub Pages should be served over HTTPS.
-
-
-Version 5.3: Grid Camera rewritten to open the video stream directly and decode the existing video element, avoiding Android deviceId/double-camera conflicts.
-
-
-## v5.5 speed update
-- OCR worker is initialized in the background so repeat label scans start faster.
-- First-time GridMaster lookup no longer waits for the full-table preload; it uses a direct lookup immediately.
-
-
-### v5.5 speed update
-- Fast OCR first pass on a reduced upper label region.
-- Full-image OCR is used only when Sort Code is not found.
-- Removed rotateAuto from the normal path.
-
-
-Version 5.6: Android camera handoff fix. The Putting workflow keeps the label camera stream alive after capture and reuses the same stream for the Grid barcode scan, avoiding the getUserMedia release/reopen race.
-
-
-Version 5.7: Grid scanning reuses the exact existing label-camera video stream; native BarcodeDetector is preferred so the grid scanner never opens a second camera stream.
+Logic:
+- RunSheet ID comes ONLY from a barcode/QR decode. It is never taken from OCR/date/time text.
+- Sort Code comes from the bold 4-character mixed code on the label, validated against GridMaster.
+- Type 1 has no left/right positional rule.
+- Type 2 uses the same GridMaster validation, so unrelated KRV/BOM/REV text is rejected unless it exists in GridMaster.
+- Every scan clears the previous result before processing.
+- OCR and GridMaster warm in the background after page load.
+- Label processing has a hard ~4.8 second recognition budget.
