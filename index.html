@@ -8,10 +8,12 @@
   <link rel="stylesheet" href="style.css?v=20261002-1">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
-</head>
+<style>
+.brandWrap{display:flex;align-items:center;gap:10px}.shadowfaxLogo{width:92px;height:auto;max-height:38px;object-fit:contain;border-radius:6px;background:#fff;padding:2px}header h1{margin-bottom:2px}.result{background:#e8f8ec!important;color:#111!important}.result *{color:#111!important;font-weight:800!important}.scanPreview{max-width:100%;max-height:60vh;object-fit:contain}
+</style></head>
 <body>
   <header>
-    <div><h1>Grid Scanner By ArupD</h1><p>Sorting & Putting • Fast Grid v5.20</p></div>
+    <div class="brandWrap"><img class="shadowfaxLogo" src="shadowfax-logo.jpg" alt="Shadowfax"><div><h1>Grid Scanner By ArupD</h1><p>Sorting & Putting • Fast Grid v5.21</p></div></div>
     <span id="onlineBadge" class="badge">ONLINE</span>
   </header>
   <main>
@@ -22,11 +24,11 @@
     </section>
     <section id="sorting" class="panel active">
       <div class="card"><h2>Sorting</h2><label>Employee ID <span class="required">*</span><input id="sortEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off"></label></div>
-      <div class="card"><h2>1. Scan Label</h2><p class="hint">Use the camera to capture the label. The barcode is used for RunSheet ID and OCR is used for Sort Code.</p><button id="sortLabelBtn" class="primary big">📷 Open Label Camera</button><div id="sortLabelPreview" class="preview"></div><div id="sortResult" class="result hidden"></div></div>
+      <div class="card"><h2>1. Scan Label</h2><p class="hint">Capture the label at any angle. RunSheet ID and Sort Code are read automatically.</p><button id="sortLabelBtn" class="primary big">📷 Open Label Camera</button><div id="sortLabelPreview" class="preview"></div><div id="sortResult" class="result hidden"></div></div>
     </section>
     <section id="putting" class="panel">
       <div class="card"><h2>Putting</h2><label>Employee ID <span class="required">*</span><input id="putEmployeeId" type="text" required placeholder="Enter Employee ID" autocomplete="off"></label></div>
-      <div class="card"><h2>1. Scan Label</h2><p class="hint">Use the camera to capture the label. RunSheet ID comes from the barcode and Sort Code comes from OCR.</p><button id="putLabelBtn" class="primary big">📷 Open Label Camera</button><div id="putLabelPreview" class="preview"></div><div id="putResult" class="result hidden"></div></div>
+      <div class="card"><h2>1. Scan Label</h2><p class="hint">Capture the label at any angle. RunSheet ID and Sort Code are read automatically.</p><button id="putLabelBtn" class="primary big">📷 Open Label Camera</button><div id="putLabelPreview" class="preview"></div><div id="putResult" class="result hidden"></div></div>
       <div id="putGridCard" class="card hidden"><h2>2. Scan Grid Barcode</h2><p class="hint">The Grid No is loaded from GridMaster. The scanned grid barcode must match it exactly.</p><button id="putGridBtn" class="primary big">📷 Open Grid Camera</button><video id="putVideo" class="video hidden" playsinline muted></video><button id="putStopBtn" class="danger hidden">Stop Camera</button><div id="putGridStatus" class="scanStatus"></div></div>
     </section>
     <section id="history" class="panel"><div class="card"><h2>Recent Records</h2><div class="toolbar"><button id="clearLocal" class="secondary">Clear Local History</button></div><div id="historyList" class="historyList"></div></div></section>
@@ -42,5 +44,6 @@
   <script src="app-fast-v5-18.js?v=5181"></script>
   <script src="app-fast-v5-19.js?v=5192"></script>
   <script src="app-fast-v5-20.js?v=5200"></script>
+  <script src="app-fast-v5-21.js?v=5210"></script>
 </body>
 </html>
