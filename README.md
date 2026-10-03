@@ -1,21 +1,13 @@
-# Grid Scanner By ArupD — v5.59
+# Grid Scanner v5.60
 
-## Sort Code rule implemented exactly
-- Type 1: select the large/bold 4-character code on the label (example TG1K/YMG1). It is not taken from date/time or small text.
-- Type 2: select the 4-character code directly below `KRV DC FMRTS` and above `REV` (example MSA1).
-- OCR uses word bounding boxes and a dedicated enlarged multi-angle montage so the bold code is not lost in the full-label OCR.
-- GridMaster remains the final validation source when the code is available.
+Critical fix: v5.59 had a JavaScript runtime error in spatial Sort Code selection (`anchor` was undefined). That error caused Sort Code OCR to return blank every time even when OCR saw the label.
 
-## RunSheet
-- Barcode/QR is primary.
-- If barcode/QR decode fails, Type 2 uses printed `DHRXSF...`; Type 1 uses the long numeric text associated with the barcode.
-- Date/time is never used as RunSheet.
+Rules:
+- Type 1: large/bold 4-character alphanumeric code is Sort Code.
+- Type 2: 4-character code directly below `KRV DC FMRTS` and above `REV` is Sort Code.
+- RunSheet: barcode/QR first; fallback rules remain unchanged.
+- Grid No comes only from GridMaster.
+- Processing target remains fast; first-time OCR model loading may take longer.
 
-Upload together:
-- index.html
-- app-fast-v5-59.js
-- app-fast-v5-7-base.js
-- shadowfax-logo.jpg
-- apps_script.gs
-
-Remove old v5.55-v5.58 app JS files from the deployed folder.
+Upload together: index.html, app-fast-v5-60.js, app-fast-v5-7-base.js, shadowfax-logo.jpg, apps_script.gs.
+Do not keep old v5.59/v5.58 app JS files referenced by index.html.
