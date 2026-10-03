@@ -1,14 +1,34 @@
-# Grid Scanner By ArupD — v5.65
+# Grid Scanner By ArupD — v5.67
 
-## Sort Code + RunSheet final logic
-- Type 1 Sort Code: the large/bold 4-character code on the right side of the label (examples: TG1K, YMG1, OMNI).
-- Type 2 Sort Code: the 4-character code directly below `KRV DC FMRTS` and above `REV` (example: MSA1).
-- Numeric-only 4-character values (for example 1300) are NEVER accepted as Sort Code.
-- OCR preserves letters such as O/I/L; OCR-confusion substitutions are used only when matching against a real GridMaster code, so `OMNI` is not displayed as `0MN1` or `1300`.
-- Four orientations are checked: 0/90/180/270. Type-1 OCR is focused on the exact bold-code region instead of the date/barcode area.
-- RunSheet: barcode/QR is first priority. If barcode decoding fails, Type 1 uses the long numeric value associated with the barcode; Type 2 uses the printed `DHRXSF...` ID. Date/time values are not used as RunSheet IDs.
-- Barcode fallback is targeted to the detected label orientation/label type for speed.
-- Processing deadline is 4.55 seconds after capture. OCR engine must already be loaded; opening the camera once before the first scan warms it.
+## Exact label logic
+
+### Type 1
+- Sort Code is ONLY the large/bold 4-character code on the right side of the label.
+- Examples: `TG1K`, `YMG1`, `OMNI`.
+- The scanner rotates the captured image through 0/90/180/270 degrees and OCRs only this focused zone.
+- OCR candidates of 3–5 characters are allowed only for GridMaster matching, so OCR such as `OMNE` can resolve to a real `OMNI` entry by one-character edit distance.
+
+### Type 2
+- Sort Code is ONLY the 4-character value directly below `KRV DC FMRTS` and above `REV`.
+- Example: `MSA1`.
+- The scanner rotates through 0/90/180/270 and OCRs only the focused central zone.
+
+### Critical safety rule
+- **GridMaster is the source of truth.**
+- A random OCR value is NEVER displayed as Sort Code.
+- Numeric-only values such as `1300` are NEVER accepted.
+- Values such as `2Y1B` are rejected unless they are confirmed by GridMaster.
+
+## RunSheet logic
+- First priority: actual barcode/QR value.
+- Type 1 fallback: the 9–10 digit numeric value printed directly below the linear barcode.
+- Type 2 fallback: the printed `DHRXSF...` RunSheet ID around the QR area.
+- Date/time text is never accepted as RunSheet ID.
+
+## Performance
+- Processing deadline: 4.45 seconds after capture.
+- GridMaster warm-up, OCR worker and barcode detection start in parallel.
+- OCR is restricted to small, high-signal zones instead of reading the whole label.
 
 ## Files
-Upload all files together and remove older version-specific app JS files from the repo.
+Upload all files together and remove older version-specific `app-fast-v5-*.js` files except `app-fast-v5-7-base.js` and the current v5.67 file.
