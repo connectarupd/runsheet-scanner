@@ -1,4 +1,4 @@
-# Grid Scanner By ArupD — v5.68
+# Grid Scanner By ArupD — v5.69
 
 ## Sort Code logic
 - Type 1: the prominent/bold 4-character alphanumeric Sort Code on the label (examples TG1K, YMG1, OMNI).
