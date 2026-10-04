@@ -43,7 +43,7 @@ function doGet(e) {
   }
 
   if (action === "lookup") {
-    const sortCode = String(e.parameter.sortCode || "").trim().toUpperCase();
+    const sortCode = normalizeCode_(e.parameter.sortCode || "");
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GridMaster");
     const values = sh.getDataRange().getValues();
 

@@ -1,4 +1,4 @@
-# Grid Scanner By ArupD — v5.70
+# Grid Scanner By ArupD — v5.71
 
 This build changes the label scan path to use the **RunSheet barcode/QR location** to find the physical label first. Sort Code OCR is then performed only on the label-local area.
 
@@ -18,4 +18,7 @@ Upload these files together and remove older `app-fast-v5-*.js` files except `ap
 - shadowfax-logo.jpg
 - apps_script.gs
 
-Do not rename the current JS. The header must show **Fast Grid v5.70**.
+Do not rename the current JS. The header must show **Fast Grid v5.71**.
+
+
+v5.71 fix: Sort Code OCR is anchored to the detected RunSheet barcode/QR location. Type 1 reads only the label-local right/side code zone; Type 2 reads only the band above the QR between KRV_DC_FMRTS and REV. Grid No is resolved only from GridMaster with a bounded preload/direct lookup. Backend normalizes Sort Code whitespace/punctuation. Scan OCR remains bounded below 5 seconds; Grid No is never invented if GridMaster has no mapping.
