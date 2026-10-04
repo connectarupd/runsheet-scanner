@@ -348,6 +348,7 @@ async function readLabel(mode,file){
 
 async function startGridScanner(){
   const s=state.putting;
+  s._lastMismatch="";
   if(!s.gridNo){toast("Grid No is not available yet.");return;}
   const status=$("#putGridStatus"), stop=$("#putStopBtn"), btn=$("#putGridBtn");
   const video=$("#labelCamera");
@@ -392,7 +393,7 @@ async function startGridScanner(){
     let nativeStarted=false;
     if("BarcodeDetector" in window){
       try{
-        let formats=["code_128","code_39","ean_13","ean_8","upc_a","upc_e","itf","codabar"];
+        let formats=["qr_code","data_matrix","aztec","pdf417","code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"];
         if(BarcodeDetector.getSupportedFormats){
           const supported=await BarcodeDetector.getSupportedFormats();
           formats=formats.filter(f=>supported.includes(f));
@@ -409,12 +410,18 @@ async function startGridScanner(){
               const expected=normalize(s.gridNo);
               if(!value) return;
               if(value===expected){
+                s._lastMismatch="";
                 stopGridScanner();
-                status.innerHTML=`<span class="success">✓ MATCH — ${escapeHtml(value)}</span>`;
+                status.innerHTML=`<span class="success">✓ GRID MATCH — ${escapeHtml(value)}</span>`;
                 saveRecord("putting",value,"MATCH");
               }else{
-                status.innerHTML=`<span class="error">✗ WRONG BARCODE — ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
-                if(navigator.vibrate) navigator.vibrate(100);
+                // Report the first decoded wrong value immediately, but avoid
+                // vibrating/repainting repeatedly for the same QR every poll.
+                if(s._lastMismatch!==value){
+                  s._lastMismatch=value;
+                  status.innerHTML=`<span class="error">✗ GRID MISMATCH — Scanned: ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
+                  if(navigator.vibrate) navigator.vibrate(120);
+                }
               }
             }catch(e){}
           },120);
@@ -437,12 +444,16 @@ async function startGridScanner(){
       const value=normalize(result.getText());
       const expected=normalize(s.gridNo);
       if(value===expected){
+        s._lastMismatch="";
         stopGridScanner();
-        status.innerHTML=`<span class="success">✓ MATCH — ${escapeHtml(value)}</span>`;
+        status.innerHTML=`<span class="success">✓ GRID MATCH — ${escapeHtml(value)}</span>`;
         saveRecord("putting",value,"MATCH");
       }else{
-        status.innerHTML=`<span class="error">✗ WRONG BARCODE — ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
-        if(navigator.vibrate) navigator.vibrate(100);
+        if(s._lastMismatch!==value){
+          s._lastMismatch=value;
+          status.innerHTML=`<span class="error">✗ GRID MISMATCH — Scanned: ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
+          if(navigator.vibrate) navigator.vibrate(120);
+        }
       }
     });
   }catch(e){
