@@ -1,4 +1,4 @@
-// Grid Scanner By ArupD — v5.74
+// Grid Scanner By ArupD — v5.77
 // Deterministic label templates based on the user's marked regions.
 // Type 1: RunSheet = linear barcode at top; Sort Code = bold code at right (e.g. TG1K).
 // Type 2: RunSheet = QR at center; Sort Code = bold center code (e.g. MSA1).
@@ -323,6 +323,18 @@ async function readSortTemplate(img,worker,deadline,locator){
       // deterministic: two label rotations, not arbitrary full-label OCR.
       probes.push({c:prep(rotate(img,0,1200),1.0),type:0,angle:0});
       probes.push({c:prep(rotate(img,90,1200),1.0),type:0,angle:90});
+    }
+
+    // Robust fallback: OCR the complete normalized label at multiple orientations
+    // even when a barcode anchor exists. Small/offset labels (OMNI, DOT2) can
+    // fall outside anchor-derived crops. These candidates are still resolved
+    // only against GridMaster, so unrelated text cannot become a confirmed code.
+    if(Date.now()<deadline-1500){
+      for(const a of [0,90,180,270]){
+        if(Date.now()>deadline-900)break;
+        const full=rotate(img,a,1100);
+        probes.push({c:prep(full,1.35),type:0,angle:a});
+      }
     }
 
     if(!probes.length || Date.now()>deadline-650)

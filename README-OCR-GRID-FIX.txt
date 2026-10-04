@@ -1,7 +1,5 @@
-Grid Scanner By ArupD v5.75 - OCR validation update
+Grid Scanner By ArupD v5.76
 
-Includes the previous QR mismatch build, longer bounded label processing, fail-closed Sort Code resolution, and rejection of ambiguous OCR-to-GridMaster matches. A Sort Code is confirmed only when it resolves uniquely against GridMaster.
+OCR update: adds whole-label, four-orientation fallback probes alongside barcode/QR-anchored crops. Candidate Sort Codes still require GridMaster validation; uncertain or unknown values must not be accepted as confirmed. Grid mismatch behavior is retained from the supplied v5.75 package.
 
-Upload ZIP contents to the existing GitHub Pages repository root, replacing old files. Keep the existing Apps Script deployment and BACKEND_URL configuration unless your backend URL changed. After commit, hard-refresh or clear browser cache.
-
-OCR cannot guarantee recognition of blurry/oblique labels. If a code cannot be uniquely validated, this build refuses success rather than accepting a guessed code.
+Deploy the contents to the existing GitHub Pages repository, replacing same-named files. Keep the current Apps Script deployment and backend URL. Test OMNI and DOT2 labels in clear light; OCR accuracy is not guaranteed on blurred or tiny images.
