@@ -5,7 +5,7 @@
 // Never use date/time or unrelated small text as RunSheet/Sort Code.
 (function(){
 'use strict';
-const DEAD_MS=4400;
+const DEAD_MS=7500;
 // Targeted barcode crops used by the RunSheet fallback pass.
 // Keep these broad because the label can be captured at any angle; rotate()
 // normalizes the orientation before these crops are tested.
@@ -472,8 +472,12 @@ async function resolveSort(info,deadline){
   // Correct one-character OCR errors only against actual GridMaster codes.
   const focused=fuzzyKnownSortCandidates([rawCode,...candidates.map(c=>c.code)]);
   if(focused.length){
-    const h=focused[0],grid=gridMasterCache[h.code];
-    if(grid)return {code:h.code,grid:String(grid),type};
+    const top=focused[0].score;
+    const tied=focused.filter(x=>x.score===top);
+    if(tied.length===1){
+      const h=tied[0],grid=gridMasterCache[h.code];
+      if(grid)return {code:h.code,grid:String(grid),type};
+    }
   }
 
   // Direct exact lookup gets first priority. This is important when the
@@ -504,7 +508,7 @@ async function resolveSort(info,deadline){
   // Keep the correctly detected Sort Code visible even if the master lookup
   // failed. Grid No is deliberately blank because it must come only from
   // GridMaster; never invent a Grid No.
-  return {code:rawCode,grid:'',type};
+  return {code:'',grid:'',type};
 }
 
 let detectorPromise=null;
@@ -726,7 +730,7 @@ async function runScan(mode,file){
   if(!s.sortCode || !s.rsId || !s.gridNo){
     const missing=!s.sortCode?'SORT_CODE_MISSING':(!s.rsId?'RUNSHEET_MISSING':'GRID_MISSING');
     await saveRecord(mode,'',missing);
-    if(!s.sortCode){toast('Sort Code not detected.');return;}
+    if(!s.sortCode){toast('Sort Code not confirmed in GridMaster. Retake label photo with code clear.');return;}
     if(!s.rsId){toast('RunSheet barcode/QR not detected.');return;}
     toast('Grid No not found for this Sort Code.');return;
   }

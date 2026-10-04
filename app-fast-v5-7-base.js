@@ -420,6 +420,7 @@ async function startGridScanner(){
                 if(s._lastMismatch!==value){
                   s._lastMismatch=value;
                   status.innerHTML=`<span class="error">✗ GRID MISMATCH — Scanned: ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
+                  toast(`WRONG GRID: ${value}. Expected: ${expected}`);
                   if(navigator.vibrate) navigator.vibrate(120);
                 }
               }
@@ -452,6 +453,7 @@ async function startGridScanner(){
         if(s._lastMismatch!==value){
           s._lastMismatch=value;
           status.innerHTML=`<span class="error">✗ GRID MISMATCH — Scanned: ${escapeHtml(value)} | Expected: ${escapeHtml(expected)}</span>`;
+          toast(`WRONG GRID: ${value}. Expected: ${expected}`);
           if(navigator.vibrate) navigator.vibrate(120);
         }
       }
