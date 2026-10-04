@@ -1,4 +1,4 @@
-// Grid Scanner By ArupD — v5.77
+// Grid Scanner By ArupD — v5.79 manual Sort Code and RunSheet ID fallback
 // Deterministic label templates based on the user's marked regions.
 // Type 1: RunSheet = linear barcode at top; Sort Code = bold code at right (e.g. TG1K).
 // Type 2: RunSheet = QR at center; Sort Code = bold center code (e.g. MSA1).
@@ -752,6 +752,66 @@ async function runScan(mode,file){
  finally{if(url)URL.revokeObjectURL(url);busy(false);}
 }
 window.readLabel=runScan;
+
+// Manual Sort Code fallback for Sorting and Putting. Lookup is exact against GridMaster.
+async function applyManualSortCode(mode){
+ const input=mode==='sorting'?$('#sortManualCode'):$('#putManualCode');
+ const status=mode==='sorting'?$('#sortManualStatus'):$('#putManualStatus');
+ const code=norm(input?.value||'');
+ const s=state[mode];
+ if(!code){status.textContent='Enter a Sort Code first.';return;}
+ status.textContent='Checking GridMaster…';
+ const buttons=mode==='sorting'?$('#sortManualApply'):$('#putManualApply');
+ buttons.disabled=true;
+ try{
+   const grid=await fetchGridForSort(code);
+   s.sortCode=code;s.gridNo=String(grid||'').trim();
+   showResult(mode);
+   if(typeof styleResult==='function')styleResult(mode);
+   status.textContent=`Matched: ${code} → Grid ${s.gridNo}`;
+   if(mode==='sorting'){
+     if(s.rsId){await saveRecord(mode,'','SORTED_MANUAL');toast('Manual Sort Code matched. Sorting saved.');}
+     else toast('Grid loaded. RunSheet ID is still required to complete Sorting.');
+   }else{
+     $('#putGridCard').classList.remove('hidden');
+     $('#putGridStatus').textContent=`Expected Grid: ${s.gridNo}. Scan this exact Grid barcode.`;
+     toast('Grid loaded from GridMaster.');
+   }
+ }catch(e){
+   status.textContent=`No exact GridMaster match for ${code}. Check the code and try again.`;
+   toast('Sort Code not found in GridMaster.');
+ }finally{buttons.disabled=false;}
+}
+$('#sortManualApply').addEventListener('click',()=>applyManualSortCode('sorting'));
+$('#putManualApply').addEventListener('click',()=>applyManualSortCode('putting'));
+$('#sortManualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyManualSortCode('sorting');}});
+$('#putManualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyManualSortCode('putting');}});
+
+// Manual RunSheet ID correction for both workflows.
+async function applyManualRunSheet(mode){
+ const prefix=mode==='sorting'?'sort':'put';
+ const input=$(`#${prefix}ManualRs`),status=$(`#${prefix}ManualRsStatus`);
+ const button=$(`#${prefix}ManualRsApply`),s=state[mode];
+ const raw=clean(input?.value).trim();
+ if(!raw){status.textContent='Enter a RunSheet ID first.';return;}
+ const accepted=validRS(raw);
+ if(!accepted){status.textContent='RunSheet ID format is not valid. Enter the complete ID (at least 7 characters).';toast('Please check the RunSheet ID.');return;}
+ s.rsId=accepted;
+ showResult(mode);if(typeof styleResult==='function')styleResult(mode);
+ status.textContent=`RunSheet ID set: ${accepted}`;
+ if(mode==='sorting'){
+   if(s.sortCode&&s.gridNo){await saveRecord(mode,'','SORTED_MANUAL');toast('Manual RunSheet ID applied. Sorting saved.');}
+   else toast('RunSheet ID applied. Add/confirm Sort Code to complete Sorting.');
+ }else{
+   if(s.sortCode&&s.gridNo){$('#putGridCard').classList.remove('hidden');$('#putGridStatus').textContent=`RunSheet ID confirmed. Expected Grid: ${s.gridNo}. Scan this exact Grid barcode.`;toast('Manual RunSheet ID applied. Continue to Grid scan.');}
+   else toast('RunSheet ID applied. Confirm Sort Code to load expected Grid.');
+ }
+}
+$('#sortManualRsApply').addEventListener('click',()=>applyManualRunSheet('sorting'));
+$('#putManualRsApply').addEventListener('click',()=>applyManualRunSheet('putting'));
+$('#sortManualRs').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyManualRunSheet('sorting');}});
+$('#putManualRs').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyManualRunSheet('putting');}});
+
 
 const btn=$('#capturePhoto');
 if(btn){let busyCapture=false;
