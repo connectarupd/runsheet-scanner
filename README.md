@@ -1,21 +1,21 @@
-# Grid Scanner By ArupD — v5.69
+# Grid Scanner By ArupD — v5.70
 
-## Sort Code logic
-- Type 1: the prominent/bold 4-character alphanumeric Sort Code on the label (examples TG1K, YMG1, OMNI).
-- Type 2: the 4-character alphanumeric text physically between the `KRV DC FMRTS` header and `REV` (example MSA1; current sample may show DOT2).
-- OCR is performed on a 2x2 montage of 0/90/180/270 degree views so the label can be captured at any angle and does not have to fill the camera frame.
-- Only 4-character alphanumeric OCR words are candidates. GridMaster is the source of truth; numeric-only values such as 1300 are never accepted.
-- If OCR makes a one-character mistake, correction is allowed only when it resolves to a real GridMaster Sort Code.
+This build changes the label scan path to use the **RunSheet barcode/QR location** to find the physical label first. Sort Code OCR is then performed only on the label-local area.
 
-## RunSheet logic
-1. Barcode/QR value first.
-2. Type 1 fallback: 9–10 digit printed number directly below the linear barcode.
-3. Type 2 fallback: printed DHRXSF... RunSheet ID around the QR.
-4. Date/time text is never accepted as RunSheet ID.
+## Exact rules
+- Type 1: RunSheet = linear barcode value first; if unreadable, use the printed 9–10 digit number below that barcode. Sort Code = the only large/bold 4-character alphanumeric text on the label.
+- Type 2: RunSheet = QR value first; if unreadable, use the printed `DHRXSF...` value. Sort Code = the 4-character text directly below `KRV DC FMRTS` and above `REV`.
+- Date/time and numeric-only values such as `1300` can never become Sort Code.
+- OCR confusion correction (for example `TYP N`/`TYP1`) is only accepted when it matches an actual GridMaster code.
+- Grid No comes only from `GridMaster` in Google Sheets.
+- Processing budget is capped below 5 seconds (OCR engine loading is warmed in the background).
 
-## Speed
-- Label processing has a hard target/deadline below 5 seconds (~4.45s).
-- OCR and barcode work are parallelized where possible.
+## Upload
+Upload these files together and remove older `app-fast-v5-*.js` files except `app-fast-v5-7-base.js`:
+- index.html
+- app-fast-v5-70.js
+- app-fast-v5-7-base.js
+- shadowfax-logo.jpg
+- apps_script.gs
 
-## Files
-Upload all six files together. Keep `app-fast-v5-7-base.js` unchanged.
+Do not rename the current JS. The header must show **Fast Grid v5.70**.
